@@ -105,12 +105,29 @@ foreach ($f in $BackupList) {
     }
 }
 
-# 2.5 创建系统还原点 —— 出问题时可在「系统属性 - 系统保护」里一键退回
-try {
-    Checkpoint-Computer -Description 'Before OPPO Sans install' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop | Out-Null
-    Write-Host '已尝试创建系统还原点' -ForegroundColor DarkGray
-} catch {
-    Write-Host '  未创建还原点（系统保护可能未开启），建议手动建一个' -ForegroundColor Yellow
+# 2.5 系统还原点 —— 只在用户明确要求时创建，不偷偷建。
+# 之前的版本每次安装都无条件调用 Checkpoint-Computer，会悄悄堆还原点。
+$markerRp = Join-Path $BakDir 'skip-restorepoint.txt'
+$wantRp = $false
+if (Test-Path $markerRp) {
+    $wantRp = $true
+} else {
+    Write-Host ''
+    Write-Host '是否先创建一个系统还原点？' -ForegroundColor Cyan
+    Write-Host '  字体替换会改系统文件；出问题可在「系统属性 - 系统保护」一键退回。'
+    Write-Host '  已有的还原点不会被覆盖；Windows 限制 24 小时内只能建一个。'
+    $ans = Read-Host '  建还原点请输入 Y（直接回车或输入 N 则跳过）'
+    if ($ans -match '^[Yy]') { $wantRp = $true }
+}
+if ($wantRp) {
+    try {
+        Checkpoint-Computer -Description 'Before OPPO Sans install' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop | Out-Null
+        Write-Host '  已创建系统还原点' -ForegroundColor Green
+    } catch {
+        Write-Host '  未能创建（系统保护未开启，或 24 小时内已建过），继续安装' -ForegroundColor Yellow
+    }
+} else {
+    Write-Host '  跳过还原点（可用 rollback.cmd 或 sfc /scannow 恢复）' -ForegroundColor DarkGray
 }
 
 # 3. 把新字体放到暂存目录（同一卷，重启时的 move 才有效）# 用唯一目录名，避免“删不掉旧目录 -> New-Item 报已存在”的死循环
