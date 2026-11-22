@@ -34,7 +34,7 @@ function Finish([int]$code, [string]$msg) {
     exit $code
 }
 
-# 没指定档位就按当前已装的那一档来，避免误降回 w400。
+# 没指定档位时的判定顺序：标记文件 → 哈希比对 → output 里唯一的档位
 # 优先读上次安装留下的标记文件 —— 光靠哈希比对不可靠：
 # 包里的字体重建一次哈希就变了，已装的那份会「认不出来」，从而回落到 w400。
 if (-not $Variant) {
@@ -54,7 +54,20 @@ if (-not $Variant) {
             }
         }
     }
-    if (-not $Variant) { $Variant = 'w400' }
+    if (-not $Variant) {
+        # 首次安装时系统字体是原版，哈希匹配不上任何档位；
+        # 这时按 output\ 里唯一存在的那档来，不要盲目回落到 w400。
+        $avail = @(Get-ChildItem -LiteralPath (Join-Path $Root 'output') -Directory -ErrorAction SilentlyContinue |
+                   Where-Object { $_.Name -like 'w*' -and (Test-Path (Join-Path $_.FullName 'msyh.ttc')) })
+        if ($avail.Count -eq 1) {
+            $Variant = $avail[0].Name
+            Write-Host "使用唯一可用的档位：$Variant" -ForegroundColor DarkGray
+        } elseif ($avail.Count -gt 1) {
+            Finish 1 ("检测到多个档位：" + ($avail.Name -join ', ') + "`n请指定一个，例如：install.cmd 不支持参数，请改用 set-weight.cmd，或删掉不用的档位目录。")
+        } else {
+            Finish 1 'output\ 里没有任何构建产物。请先运行：python src\build.py --weight 600'
+        }
+    }
 }
 $SrcDir = Join-Path $Root "output\$Variant"
 
