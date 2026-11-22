@@ -93,6 +93,24 @@ Get-ChildItem -LiteralPath $Fonts -Filter 'MSYHSC-OPPO-*.ttf' -ErrorAction Silen
     catch { Write-Host ("  " + $_.Name + " 正在使用，重启后可删") -ForegroundColor Yellow }
 }
 
+# 0.7 还原等线（DengXian）的注册表指向
+$dengBak = Join-Path $BakDir 'dengxian-registry.txt'
+if (Test-Path $dengBak) {
+    foreach ($line in (Get-Content -LiteralPath $dengBak)) {
+        if (-not $line) { continue }
+        $i = $line.IndexOf('=')
+        if ($i -lt 1) { continue }
+        $entry = $line.Substring(0, $i)
+        $file = $line.Substring($i + 1)
+        Set-ItemProperty -Path $fontsKey -Name $entry -Value $file
+        Write-Host ("  {0} 还原为 {1}" -f $entry, $file) -ForegroundColor Green
+    }
+}
+Get-ChildItem -LiteralPath $Fonts -Filter 'DengXianOPPO-*.ttf' -ErrorAction SilentlyContinue | ForEach-Object {
+    try { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop; Write-Host ("已删除 " + $_.Name) -ForegroundColor Green }
+    catch { Write-Host ("  " + $_.Name + " 正在使用，重启后可删") -ForegroundColor Yellow }
+}
+
 # 1. 找原版来源
 New-Item -ItemType Directory -Path $Staging -Force | Out-Null
 Get-ChildItem (Join-Path $env:windir 'Temp') -Directory -Filter 'OPPOSansRestore-*' -ErrorAction SilentlyContinue |

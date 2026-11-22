@@ -257,6 +257,40 @@ if (Test-Path $semSrc) {
     Write-Host '  未找到 msyhsc.ttf，跳过 Semibold 面（标题仍会落到 700）' -ForegroundColor DarkGray
 }
 
+# 3.8 等线（DengXian）——系统里唯一没被换过的西文来源。
+#      只换它的拉丁字形，中文和度量原样保留，所以 Office 文档排版不受影响。
+$dengMap = @(
+    @{ Entry = 'DengXian (TrueType)';       File = 'DengXian.ttf' },
+    @{ Entry = 'DengXian Bold (TrueType)';  File = 'DengXianBold.ttf' },
+    @{ Entry = 'DengXian Light (TrueType)'; File = 'DengXianLight.ttf' }
+)
+$dengBak = Join-Path $BakDir 'dengxian-registry.txt'
+$dengChanged = $false
+foreach ($m in $dengMap) {
+    $srcF = Join-Path $classicDir $m.File
+    if (-not (Test-Path $srcF)) { continue }
+    $fh = (Get-FileHash -LiteralPath $srcF -Algorithm SHA256).Hash.Substring(0, 8).ToLower()
+    $newName = "DengXianOPPO-$fh.ttf"
+    $dst = Join-Path $Fonts $newName
+    if (-not (Test-Path $dst)) {
+        Copy-Item -LiteralPath $srcF -Destination $dst -Force
+        foreach ($sid in @('*S-1-5-18:(F)', '*S-1-5-32-544:(F)', '*S-1-5-32-545:(RX)', '*S-1-15-2-1:(RX)')) {
+            & icacls.exe $dst /grant $sid | Out-Null
+        }
+    }
+    $item = Get-ItemProperty -Path $fontsKey -Name $m.Entry -ErrorAction SilentlyContinue
+    $cur = $null
+    if ($item) { $cur = $item.PSObject.Properties[$m.Entry].Value }
+    if ($cur -ne $newName) {
+        if ($cur -and $cur -notlike 'DengXianOPPO*' -and -not (Test-Path $dengBak)) {
+            Add-Content -Path $dengBak -Value ($m.Entry + '=' + $cur) -Encoding ASCII
+        }
+        Set-ItemProperty -Path $fontsKey -Name $m.Entry -Value $newName
+        Write-Host ("  {0} -> {1}" -f $m.Entry, $newName) -ForegroundColor Green
+        $dengChanged = $true
+    }
+}
+
 # 4. 只对真正需要替换的文件登记（已经一致的不动，避免把留底的 .swapout 白白删掉）
 $needs = @()
 foreach ($f in $Files) {
@@ -273,7 +307,7 @@ foreach ($f in $Files) {
     else { $needs += $f; Write-Host "  待替换 $f" }
 }
 if ($needs.Count -eq 0) {
-    if ($segChanged -or $classicChanged -or $semChanged) { Finish 0 '只更新了注册表指向，重启电脑后生效。' }
+    if ($segChanged -or $classicChanged -or $semChanged -or $dengChanged) { Finish 0 '只更新了注册表指向，重启电脑后生效。' }
     Finish 0 '当前已经是最新状态，不需要重启。'
 }
 
