@@ -225,6 +225,34 @@ if (Test-Path $classicDir) {
     if (-not $classicChanged) { Write-Host '  经典 Segoe UI 已指向副本' -ForegroundColor DarkGray }
 }
 
+# 3.7 补一个 Semibold 面。界面标题请求 600，家族里若只有 400/700，
+#     DirectWrite 只能落到 700 —— 比手机上的 SemiBold 粗一档。
+$semSrc = Join-Path $SrcDir 'msyhsc.ttf'
+$semChanged = $false
+if (Test-Path $semSrc) {
+    $semHash = (Get-FileHash -LiteralPath $semSrc -Algorithm SHA256).Hash.Substring(0, 8).ToLower()
+    $semName = "MSYHSC-OPPO-$semHash.ttf"
+    $semDst = Join-Path $Fonts $semName
+    if (-not (Test-Path $semDst)) {
+        Copy-Item -LiteralPath $semSrc -Destination $semDst -Force
+        foreach ($sid in @('*S-1-5-18:(F)', '*S-1-5-32-544:(F)', '*S-1-5-32-545:(RX)', '*S-1-15-2-1:(RX)')) {
+            & icacls.exe $semDst /grant $sid | Out-Null
+        }
+        Write-Host "  已安装 Semibold 面：$semName" -ForegroundColor Green
+    }
+    $semEntry = 'Microsoft YaHei UI Semibold (TrueType)'
+    $item = Get-ItemProperty -Path $fontsKey -Name $semEntry -ErrorAction SilentlyContinue
+    $cur = $null
+    if ($item) { $cur = $item.PSObject.Properties[$semEntry].Value }
+    if ($cur -ne $semName) {
+        Set-ItemProperty -Path $fontsKey -Name $semEntry -Value $semName
+        Write-Host "  已注册 $semEntry -> $semName" -ForegroundColor Green
+        $semChanged = $true
+    }
+} else {
+    Write-Host '  未找到 msyhsc.ttf，跳过 Semibold 面（标题仍会落到 700）' -ForegroundColor DarkGray
+}
+
 # 4. 只对真正需要替换的文件登记（已经一致的不动，避免把留底的 .swapout 白白删掉）
 $needs = @()
 foreach ($f in $Files) {
@@ -241,7 +269,7 @@ foreach ($f in $Files) {
     else { $needs += $f; Write-Host "  待替换 $f" }
 }
 if ($needs.Count -eq 0) {
-    if ($segChanged -or $classicChanged) { Finish 0 '只更新了注册表指向，重启电脑后生效。' }
+    if ($segChanged -or $classicChanged -or $semChanged) { Finish 0 '只更新了注册表指向，重启电脑后生效。' }
     Finish 0 '当前已经是最新状态，不需要重启。'
 }
 

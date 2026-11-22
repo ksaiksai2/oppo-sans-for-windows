@@ -82,6 +82,17 @@ Get-ChildItem -LiteralPath $Fonts -Filter 'SegoeUIOppo-*.ttf' -ErrorAction Silen
     catch { Write-Host ("  " + $_.Name + " 正在使用，重启后可删") -ForegroundColor Yellow }
 }
 
+# 0.6 移除补的 Semibold 面
+$semEntry = 'Microsoft YaHei UI Semibold (TrueType)'
+try {
+    Remove-ItemProperty -Path $fontsKey -Name $semEntry -ErrorAction Stop
+    Write-Host "已移除 $semEntry" -ForegroundColor Green
+} catch { }
+Get-ChildItem -LiteralPath $Fonts -Filter 'MSYHSC-OPPO-*.ttf' -ErrorAction SilentlyContinue | ForEach-Object {
+    try { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop; Write-Host ("已删除 " + $_.Name) -ForegroundColor Green }
+    catch { Write-Host ("  " + $_.Name + " 正在使用，重启后可删") -ForegroundColor Yellow }
+}
+
 # 1. 找原版来源
 New-Item -ItemType Directory -Path $Staging -Force | Out-Null
 Get-ChildItem (Join-Path $env:windir 'Temp') -Directory -Filter 'OPPOSansRestore-*' -ErrorAction SilentlyContinue |

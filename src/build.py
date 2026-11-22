@@ -91,7 +91,7 @@ def build(weight):
     bs = importlib.import_module("build_segoe")
     bsc = importlib.import_module("build_segoe_classic")
 
-    print("\n=== 1/3 微软雅黑三件套 ===")
+    print("\n=== 1/4 微软雅黑三件套 ===")
     bv.D = SRC_DIR
     bv.OUT = OUT_ROOT
     bv.SLOTS = [
@@ -102,14 +102,14 @@ def build(weight):
     bv.VARIANTS = {"w%d" % weight: mapping}
     bv.build_variant("w%d" % weight, mapping)
 
-    print("\n=== 2/3 Segoe UI Variable（壳界面英文）===")
+    print("\n=== 2/4 Segoe UI Variable（壳界面英文）===")
     bs.D = SRC_DIR
     bs.OUT = OUT_ROOT
     bs.SEGOE = os.path.join(ref_dir, "SegUIVar.ttf")
     bs.VARIANTS = {"w%d" % weight: (mapping["Regular"], 700)}
     bs.build_variant("w%d" % weight, mapping["Regular"], 700)
 
-    print("\n=== 3/3 经典 Segoe UI（五个字重）===")
+    print("\n=== 3/4 经典 Segoe UI（五个字重）===")
     bsc.SRCDIR = SRC_DIR
     bsc.OUTDIR = os.path.join(OUT_ROOT, "segclassic")
     bsc.WINFONTS = ref_dir
@@ -122,6 +122,10 @@ def build(weight):
     os.makedirs(bsc.OUTDIR, exist_ok=True)
     for t in bsc.TARGETS:
         bsc.build(*t)
+
+    print("\n=== 4/4 补 Semibold 面（让标题命中 600 而不是 700）===")
+    bsem = importlib.import_module("build_semibold")
+    bsem.build(os.path.join(out_dir, "base-Regular.ttf"), os.path.join(out_dir, "msyhsc.ttf"))
 
     print("\n=== 完成 ===")
     total = 0
