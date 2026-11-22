@@ -81,8 +81,7 @@ foreach ($f in ($Files + @($SegFile))) {
 
 # 2. 备份原版（复制出来不受占用影响）
 if (-not (Test-Path $BakDir)) { New-Item -ItemType Directory -Path $BakDir | Out-Null }
-# 备份原版（复制出来不受占用影响）。经典 Segoe 也要备份：
-# 构建新字体时要以"最初的原版"为度量参照，装了替换版之后系统里的那份已经不是原版了。
+# 备份原版（复制出来不受占用影响）。经典 Segoe 也要备份：# 构建新字体时要以"最初的原版"为度量参照，装了替换版之后系统里的那份已经不是原版了。
 $BackupList = $Files + @($SegFile) + @('segoeui.ttf', 'segoeuib.ttf', 'seguisb.ttf', 'segoeuil.ttf', 'segoeuisl.ttf')
 foreach ($f in $BackupList) {
     $bak = Join-Path $BakDir $f
@@ -93,8 +92,15 @@ foreach ($f in $BackupList) {
     }
 }
 
-# 3. 把新字体放到暂存目录（同一卷，重启时的 move 才有效）
-# 用唯一目录名，避免“删不掉旧目录 -> New-Item 报已存在”的死循环
+# 2.5 创建系统还原点 —— 出问题时可在「系统属性 - 系统保护」里一键退回
+try {
+    Checkpoint-Computer -Description 'Before OPPO Sans install' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop | Out-Null
+    Write-Host '已尝试创建系统还原点' -ForegroundColor DarkGray
+} catch {
+    Write-Host '  未创建还原点（系统保护可能未开启），建议手动建一个' -ForegroundColor Yellow
+}
+
+# 3. 把新字体放到暂存目录（同一卷，重启时的 move 才有效）# 用唯一目录名，避免“删不掉旧目录 -> New-Item 报已存在”的死循环
 New-Item -ItemType Directory -Path $Staging -Force | Out-Null
 # 顺手清理以前跑剩下的暂存目录（删不掉就跳过，不影响本次）
 Get-ChildItem (Join-Path $env:windir 'Temp') -Directory -Filter 'OPPOSansSwap-*' -ErrorAction SilentlyContinue |
