@@ -16,8 +16,10 @@ if ($pts.Count -eq 0) {
 } else {
     Write-Host ("  共 {0} 个：" -f $pts.Count)
     foreach ($p in $pts) {
-        Write-Host ("  #{0,-4} {1}  {2}" -f $p.SequenceNumber,
-                   $p.CreationTime.ToString('yyyy-MM-dd HH:mm:ss'), $p.Description)
+        $t = $p.CreationTime
+        if ($t -is [string]) { try { $t = [datetime]::Parse($t) } catch { } }
+        $ts = if ($t -is [datetime]) { $t.ToString('yyyy-MM-dd HH:mm:ss') } else { [string]$t }
+        Write-Host ("  #{0,-4} {1}  {2}" -f $p.SequenceNumber, $ts, $p.Description)
     }
 }
 Write-Host ''
