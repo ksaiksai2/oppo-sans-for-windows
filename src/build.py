@@ -114,13 +114,19 @@ def build(weight):
     bsc.SRCDIR = SRC_DIR
     bsc.OUTDIR = os.path.join(OUT_ROOT, "segclassic")
     bsc.WINFONTS = ref_dir
+    # 三元组第 3 项 = 用哪档 OPPO 字形；第 4 项 = 产物声明的 usWeightClass。
+    # 关键：第 4 项必须由「目标文件」决定，不能跟着第 3 项走。
+    # 之前把英文常规的字形从 500 提到 700 时，连 usWeightClass 也写成了 700，
+    # 结果产出一个「名字叫 Regular、字重 700」的矛盾字体，Windows 选择器直接跳过它
+    # → 界面退回原版 Segoe UI。这是 700 档英文丢失的根因。
     reg_w = CLASSIC_REGULAR.get(weight, 500)
-    bsc.TARGETS = [(f, sub, w, {"segoeuil.ttf": 300, "segoeuisl.ttf": 350}.get(f, w))
-                   for f, sub, w in (("segoeui.ttf", "Regular", reg_w),
-                                     ("segoeuib.ttf", "Bold", CLASSIC_MAP["segoeuib.ttf"]),
-                                     ("seguisb.ttf", "Semibold", CLASSIC_MAP["seguisb.ttf"]),
-                                     ("segoeuil.ttf", "Light", CLASSIC_MAP["segoeuil.ttf"]),
-                                     ("segoeuisl.ttf", "Semilight", CLASSIC_MAP["segoeuisl.ttf"]))]
+    bsc.TARGETS = [
+        ("segoeui.ttf",   "Regular",   reg_w, 400),
+        ("segoeuib.ttf",  "Bold",      700,   700),
+        ("seguisb.ttf",   "Semibold",  600,   600),
+        ("segoeuil.ttf",  "Light",     300,   300),
+        ("segoeuisl.ttf", "Semilight", 400,   350),
+    ]
     os.makedirs(bsc.OUTDIR, exist_ok=True)
     for t in bsc.TARGETS:
         bsc.build(*t)
