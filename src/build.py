@@ -46,9 +46,10 @@ TIERS = {
     600: {"Regular": 600, "Bold": 700, "Light": 500},
     700: {"Regular": 700, "Bold": 700, "Light": 600},
 }
-# 经典 Segoe UI 的字重映射（英文比中文轻一档，网页长文更好读）
+# 经典 Segoe UI 的字重映射。常规档跟着中文档位走：中文越粗，英文也提一档，
+# 否则中英并排时英文会显得发虚（中文 700 配英文 500 就是这种效果）。
+CLASSIC_REGULAR = {400: 400, 500: 500, 600: 500, 700: 600}
 CLASSIC_MAP = {
-    "segoeui.ttf": 500,
     "segoeuib.ttf": 700,
     "seguisb.ttf": 600,
     "segoeuil.ttf": 300,
@@ -113,8 +114,9 @@ def build(weight):
     bsc.SRCDIR = SRC_DIR
     bsc.OUTDIR = os.path.join(OUT_ROOT, "segclassic")
     bsc.WINFONTS = ref_dir
+    reg_w = CLASSIC_REGULAR.get(weight, 500)
     bsc.TARGETS = [(f, sub, w, {"segoeuil.ttf": 300, "segoeuisl.ttf": 350}.get(f, w))
-                   for f, sub, w in (("segoeui.ttf", "Regular", CLASSIC_MAP["segoeui.ttf"]),
+                   for f, sub, w in (("segoeui.ttf", "Regular", reg_w),
                                      ("segoeuib.ttf", "Bold", CLASSIC_MAP["segoeuib.ttf"]),
                                      ("seguisb.ttf", "Semibold", CLASSIC_MAP["seguisb.ttf"]),
                                      ("segoeuil.ttf", "Light", CLASSIC_MAP["segoeuil.ttf"]),
