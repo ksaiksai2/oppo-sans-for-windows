@@ -213,7 +213,11 @@ if (Test-Path $classicDir) {
         $cur = $null
         if ($item) { $cur = $item.PSObject.Properties[$m.Entry].Value }
         if ($cur -ne $newName) {
-            if ($cur) { $lines += ($m.Entry + '=' + $cur) }
+            # 只记真正的原值：当前指向如果已经是我们自己的副本，说明装过一次了，
+            # 再记下来会把"自己的副本名"当成原版，回滚时指向一个非原版文件。
+            if ($cur -and $cur -notlike 'SegoeUIOppo-*' -and -not (Test-Path $classicBak)) {
+                $lines += ($m.Entry + '=' + $cur)
+            }
             Set-ItemProperty -Path $fontsKey -Name $m.Entry -Value $newName
             $classicChanged = $true
             Write-Host ("  {0} -> {1}" -f $m.Entry, $newName) -ForegroundColor Green
