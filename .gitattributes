@@ -1,0 +1,6 @@
+# 统一换行：.cmd 必须是 CRLF，否则 cmd.exe 解析多行 if 块会失败
+* text=auto
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.py  text eol=lf
+*.md  text eol=lf
