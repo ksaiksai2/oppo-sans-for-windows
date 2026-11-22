@@ -16,9 +16,13 @@ if ($pts.Count -eq 0) {
 } else {
     Write-Host ("  共 {0} 个：" -f $pts.Count)
     foreach ($p in $pts) {
-        $t = $p.CreationTime
-        if ($t -is [string]) { try { $t = [datetime]::Parse($t) } catch { } }
-        $ts = if ($t -is [datetime]) { $t.ToString('yyyy-MM-dd HH:mm:ss') } else { [string]$t }
+        # Get-ComputerRestorePoint 返回的是 CIM DATETIME 字符串（UTC），
+        # 必须用 ManagementDateTimeConverter 转成本地时间，否则会显示成"下午三点"。
+        $raw = [string]$p.CreationTime
+        try {
+            $t = [System.Management.ManagementDateTimeConverter]::ToDateTime($raw)
+            $ts = $t.ToString('yyyy-MM-dd HH:mm:ss')
+        } catch { $ts = $raw }
         Write-Host ("  #{0,-4} {1}  {2}" -f $p.SequenceNumber, $ts, $p.Description)
     }
 }
