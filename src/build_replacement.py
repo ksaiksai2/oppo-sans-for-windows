@@ -49,27 +49,48 @@ def build_base(src_ttf, ref_ttc, ref_face, weight, style, verbose=True):
     s_upem = src["head"].unitsPerEm
     r_upem = ref["head"].unitsPerEm          # 2048
 
+    k = r_upem / s_upem                      # 1000 -> 2048
     sb = bbox_em(src, ANCHOR)
     rb = bbox_em(ref, ANCHOR)
-    sx = (rb[2] - rb[0]) / (sb[2] - sb[0])
-    sy = (rb[3] - rb[1]) / (sb[3] - sb[1])
-    dx = rb[0] - sb[0] * sx
-    dy = rb[1] - sb[1] * sy
-
-    k = r_upem / s_upem                      # 1000 -> 2048
-    KX, KY = sx * k, sy * k
-    DX, DY = dx * r_upem, dy * r_upem
+    def _params(s, r):
+        sx = (r[2] - r[0]) / (s[2] - s[0])
+        sy = (r[3] - r[1]) / (s[3] - s[1])
+        dx = r[0] - s[0] * sx
+        dy = r[1] - s[1] * sy
+        return (sx * k, sy * k, dx * r_upem, dy * r_upem)
+    FALLBACK = _params(sb, rb)
     if verbose:
-        print("  设计空间: sx=%.4f sy=%.4f dx=%+.4fem dy=%+.4fem (upem %d->%d)"
-              % (sx, sy, dx, dy, s_upem, r_upem))
+        print("  锚点 %s 设计空间缩放 %.4f/%.4f (upem %d->%d)" % (ANCHOR, FALLBACK[0], FALLBACK[1], s_upem, r_upem))
 
-    # ---- 1. 拆轮廓并变换 ----
+    # ---- 1. 拆轮廓并逐字变换 ----
+    # 之前把所有字套同一个锚点系数，只有「国」对齐，其他字垂直差 50~90 单位，
+    # 浏览器里表现为文字相对图标基线不齐（悬空）。现在每个字按它自己在参照字体
+    # 里的 bbox 求变换，使字面框逐字重合；参照里没有的字仍用锚点系数。
     order = src.getGlyphOrder()
     glyph_set = src.getGlyphSet()
     glyf = src["glyf"]
+    src_cmap = src.getBestCmap()
+    ref_cmap = ref.getBestCmap()
+    def _box_raw(font, name):
+        g = font["glyf"][name]
+        g.recalcBounds(font["glyf"])
+        u = font["head"].unitsPerEm
+        return (g.xMin / u, g.yMin / u, g.xMax / u, g.yMax / u)
+    per_glyph = 0
     new_glyphs = {}
     for name in order:
+        params = FALLBACK
+        for cp, gn in src_cmap.items():
+            if gn != name or cp not in ref_cmap:
+                continue
+            try:
+                params = _params(_box_raw(src, name), _box_raw(ref, ref_cmap[cp]))
+                per_glyph += 1
+            except (KeyError, ZeroDivisionError):
+                pass
+            break
         rec = DecomposingRecordingPen(glyph_set)
+        KX, KY, DX, DY = params
         glyph_set[name].draw(TransformPen(rec, (KX, 0, 0, KY, DX, DY)))
         pen = TTGlyphPen(None)
         rec.replay(pen)
@@ -176,7 +197,7 @@ def build_base(src_ttf, ref_ttc, ref_face, weight, style, verbose=True):
             # 只要雅黑有这个字，字宽就用雅黑的：界面排版零位移，文字不会被截断
             adv = ref_hmtx[ref_cmap[cp]][0]
         if adv is None:
-            adv = int(round(src_hmtx[name][0] * KX))
+            adv = int(round(src_hmtx[name][0] * FALLBACK[0]))
         new_metrics[name] = (adv, lsb)
     src["hmtx"].metrics = new_metrics
 
