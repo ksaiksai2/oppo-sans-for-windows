@@ -164,6 +164,9 @@ def build_face(src_ttf, ref, weight, style, verbose=True):
     h.ascent, h.descent, h.lineGap = rh.ascent, rh.descent, rh.lineGap
     o.sTypoAscender, o.sTypoDescender, o.sTypoLineGap = ro.sTypoAscender, ro.sTypoDescender, ro.sTypoLineGap
     o.usWinAscent, o.usWinDescent = ro.usWinAscent, ro.usWinDescent
+    # x-height / cap-height: DirectWrite/XAML 用它算行内视觉中心，
+    # 不复制会让 Edge 自带 UI 的文字相对图标偏高（网页 CSS 排版不受影响）。
+    o.sxHeight, o.sCapHeight = ro.sxHeight, ro.sCapHeight
     o.xAvgCharWidth = ro.xAvgCharWidth
     o.usWeightClass = weight
     o.fsSelection = (o.fsSelection & 0b10000000) | (0b100000 if weight == 700 else 0b1000000)

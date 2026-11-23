@@ -207,6 +207,9 @@ def build_base(src_ttf, ref_ttc, ref_face, weight, style, verbose=True):
     h.ascent, h.descent, h.lineGap = rh.ascent, rh.descent, rh.lineGap
     o.sTypoAscender, o.sTypoDescender, o.sTypoLineGap = ro.sTypoAscender, ro.sTypoDescender, ro.sTypoLineGap
     o.usWinAscent, o.usWinDescent = ro.usWinAscent, ro.usWinDescent
+    # x-height / cap-height 是 DirectWrite / XAML 算文字视觉中心与行内位置的依据。
+    # 不复制这两个字段，Edge 自己的 UI 按钮里文字会相对图标偏高（网页 CSS 排版不受影响）。
+    o.sxHeight, o.sCapHeight = ro.sxHeight, ro.sCapHeight
     o.xAvgCharWidth = ro.xAvgCharWidth
     o.usWeightClass = weight
     keep = o.fsSelection & 0b10000000

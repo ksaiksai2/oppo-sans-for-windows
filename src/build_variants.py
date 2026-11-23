@@ -49,6 +49,9 @@ def patch_face(font, ref):
     rh, ro = ref["hhea"], ref["OS/2"]
     font["hhea"].ascent, font["hhea"].descent, font["hhea"].lineGap = rh.ascent, rh.descent, rh.lineGap
     font["OS/2"].usWinAscent, font["OS/2"].usWinDescent = ro.usWinAscent, ro.usWinDescent
+    # x-height / cap-height: DirectWrite/XAML 用它算行内视觉中心，
+    # 不复制会让 Edge 自带 UI 的文字相对图标偏高（网页 CSS 排版不受影响）。
+    font["OS/2"].sxHeight, font["OS/2"].sCapHeight = ro.sxHeight, ro.sCapHeight
 
 
 def bbox_of(font, ch="国"):
